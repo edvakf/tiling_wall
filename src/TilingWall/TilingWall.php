@@ -69,22 +69,24 @@ class TilingWall
 				'left' => ($this->node_num <= $i * 2 + 1) ? -1 : ($i * 2 + 1),
 				'right' => ($this->node_num <= $i * 2 + 2) ? -1 : ($i * 2 + 2),
 				'type' => mt_rand(0, 1),
-				'is_leaf' => $this->target_num <= $i,
+				'is_leaf' => $this->target_num <= $i, // 不要
 				'x' => 0,
 				'y' => 0,
 				'width' => 0,
 				'height' => 0,
 				'aspect' => 0,
+				'weight' => 0,
 			);
 			$this->nodes[] = $node;
 		}
 
 		foreach ($this->targets as $idx => $target) {
 			$node_id = $this->target_num + $idx - 1;
-			$this->nodes[$node_id]['width'] = (float)$target['width'];
-			$this->nodes[$node_id]['height'] = (float)$target['height'];
+			$this->nodes[$node_id]['width'] = (float)$target['width']; // ?
+			$this->nodes[$node_id]['height'] = (float)$target['height']; // ?
 			$this->nodes[$node_id]['aspect'] = $target['width'] / $target['height'];
 			$this->nodes[$node_id]['name'] = $target['name'];
+			$this->nodes[$node_id]['weight'] = isset($target['weight']) ? (float)$target['weight'] ? 0;
 		}
 	}
 
@@ -97,7 +99,7 @@ class TilingWall
 		if ($node['type'] == 0) {
 			$node['aspect'] = $left_aspect + $right_aspect;
 		} else {
-			$node['aspect'] = ($left_aspect * $right_aspect * 1.0) / ($left_aspect + $right_aspect);
+			$node['aspect'] = ($left_aspect * $right_aspect * 1.0) / ($left_aspect + $right_aspect); // ?
 		}
 	}
 
@@ -153,6 +155,25 @@ class TilingWall
 		}
 
 		return array_slice($this->best_nodes, $this->target_num - 1, $this->target_num, true);
+	}
+
+	public function arrangementHeightFreeWithWeight(array $options) {
+		$retry_loop = $this->precision['loop'];
+		$best_score = 0;
+		$best_results = null;
+		do {
+			$results = $this->arrangement($options);
+			$score = 0;
+			foreach ($results as $result) {
+				$score += $result['weight'] * $result['width'] * $result['height'];
+			}
+			if (is_null($best_results) || $best_score < $score) {
+				$best_results = $results;
+				$best_score = $score;
+			}
+		} while ($retry_loop-- != 0);
+
+		return $best_results;
 	}
 
 	public function arrangementHeightFree(array $options) {
